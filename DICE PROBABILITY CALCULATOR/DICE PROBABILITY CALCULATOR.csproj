@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>DICE_PROBABILITY_CALCULATOR</RootNamespace>
+  </PropertyGroup>
+
+</Project>
