@@ -21,7 +21,7 @@ namespace TestProject2
             string s = "(1+(4+5+2)-3)+(6+8)";
             MyCalculator myCalculator = new MyCalculator();
             var Tokens = myCalculator.GetTokens(s);
-            Assert.AreEqual(23, int.Parse(myCalculator.EvaluateExpression(Tokens).ToString()));
+            Assert.AreEqual(23m, myCalculator.EvaluateExpression(Tokens));
         }
 
 
@@ -31,10 +31,38 @@ namespace TestProject2
             string s = "2*(3+4)-9";
             MyCalculator myCalculator = new MyCalculator();
             var Tokens = myCalculator.GetTokens(s);
-            Assert.AreEqual(5, int.Parse(myCalculator.EvaluateExpression(Tokens).ToString()));
+            var result = myCalculator.EvaluateExpression(Tokens);
+            Assert.AreEqual(5m, result);
         }
 
 
+        [TestMethod]
+        public void TestMethod4()
+        {
+            string s = "5>2";
+            MyCalculator myCalculator = new MyCalculator();
+            var Tokens = myCalculator.GetTokens(s);
+            Assert.AreEqual(3, Tokens.Count);
+        }
+
+        [TestMethod]
+        public void TestMethod5()
+        {
+            string s = "5>2";
+            MyCalculator myCalculator = new MyCalculator();
+            var Tokens = myCalculator.GetTokens(s);
+            var result = myCalculator.EvaluateExpression(Tokens);
+            Assert.AreEqual(1m, result);
+        }
+
+        [TestMethod]
+        public void TestMethod6()
+        {
+            string s = "d2+d6+63";
+            MyCalculator myCalculator = new MyCalculator();
+            var Tokens = myCalculator.GetTokens(s);
+            Assert.AreEqual(5, Tokens.Count);
+        }
 
 
     }
