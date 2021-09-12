@@ -106,5 +106,24 @@ namespace TestProject2
             var result = myCalculator.EvaluateExpression(Tokens);
             Assert.AreEqual(1m, result.dist[6m] + result.dist[9m]);
         }
+
+        [TestMethod]
+        public void TestMethod11()
+        {
+            string s = "2*d6*d3-(3+d3)*d5>0";
+            MyCalculator myCalculator = new MyCalculator();
+            var Tokens = myCalculator.GetTokens(s);
+            var result = myCalculator.EvaluateExpression(Tokens);
+            Assert.AreEqual(0.4037m, Math.Round(result.dist[1m],4));
+        }
+        [TestMethod]
+        public void TestMethod12()
+        {
+            string s = "8>d6+d6";
+            MyCalculator myCalculator = new MyCalculator();
+            var Tokens = myCalculator.GetTokens(s);
+            var result = myCalculator.EvaluateExpression(Tokens);
+            Assert.AreEqual(0.5833m, Math.Round(result.dist[1m], 4));
+        }
     }
 }

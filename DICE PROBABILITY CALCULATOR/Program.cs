@@ -111,32 +111,25 @@ namespace DICE_PROBABILITY_CALCULATOR
         }
         public static Operand operator <(Operand a, Operand b)
         {
-            decimal ea = 0m;
-            decimal eb = 0m;
-            foreach (var i in a.dist)
-            {
-                ea += i.Key * i.Value;
-            }
-            foreach (var j in b.dist)
-            {
-                eb += j.Key * j.Value;
-            }
-            return new Operand(ea < eb ? 1m : 0m);
+            throw new Exception();
         }
 
         public static Operand operator >(Operand a, Operand b)
         {
-            decimal ea = 0m;
-            decimal eb = 0m;
+            Operand tmp = new Operand();
             foreach (var i in a.dist)
             {
-                ea += i.Key * i.Value;
+                foreach (var j in b.dist)
+                {
+                    var cmp = i.Key > j.Key ? 1m : 0m;
+                    if (!tmp.dist.ContainsKey(cmp))
+                    {
+                        tmp.dist[cmp] = 0m;
+                    }
+                    tmp.dist[cmp] += i.Value * j.Value;
+                }
             }
-            foreach (var j in b.dist)
-            {
-                eb += j.Key * j.Value;
-            }
-            return new Operand(ea > eb ? 1m : 0m);
+            return tmp;
         }
 
     }
