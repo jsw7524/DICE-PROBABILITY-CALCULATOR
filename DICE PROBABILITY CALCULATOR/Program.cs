@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 namespace DICE_PROBABILITY_CALCULATOR
 {
@@ -8,8 +10,7 @@ namespace DICE_PROBABILITY_CALCULATOR
     public enum TokenType
     {
         OP,
-        Val,
-        Variable
+        Val
     }
 
     public class Token
@@ -23,69 +24,123 @@ namespace DICE_PROBABILITY_CALCULATOR
 
     public class Operand : Token
     {
-        public decimal val;
         public string name;
+        public Dictionary<decimal, decimal> dist = new Dictionary<decimal, decimal>();
 
+        public Operand()
+        {
+
+        }
         public Operand(decimal d)
         {
-            val = d;
+            dist[d] = 1.00m;
             tkType = TokenType.Val;
         }
         public Operand(string s)
         {
             name = s;
-            val = decimal.Parse(s.Replace("d", ""));
-            tkType = TokenType.Variable;
+            decimal bound = decimal.Parse(s.Replace("d", ""));
+            for (var i = 1; i <= bound; i++)
+            {
+                dist[i] = 1.0m / bound;
+            }
+            tkType = TokenType.Val;
         }
+
+        public override string ToString()
+        {          
+            StringBuilder sb = new StringBuilder();
+
+            foreach (var i in dist.OrderBy(a=>a.Key))
+            {
+                sb.Append($"{i.Key} {(i.Value*100).ToString("##.00")}\n");
+            }
+            return sb.ToString().TrimEnd('\r', '\n');
+        }
+
 
         public static Operand operator +(Operand a, Operand b)
         {
-            return new Operand(a.val + b.val);
+            Operand tmp = new Operand();
+            foreach (var i in a.dist)
+            {
+                foreach (var j in b.dist)
+                {
+                    if (!tmp.dist.ContainsKey(i.Key + j.Key))
+                    {
+                        tmp.dist[i.Key + j.Key] = 0m;
+                    }
+                    tmp.dist[i.Key + j.Key] += i.Value * j.Value;
+                }
+            }
+            return tmp;
         }
 
         public static Operand operator -(Operand a, Operand b)
         {
-            return new Operand(a.val - b.val);
+            Operand tmp = new Operand();
+            foreach (var i in a.dist)
+            {
+                foreach (var j in b.dist)
+                {
+                    if (!tmp.dist.ContainsKey(i.Key - j.Key))
+                    {
+                        tmp.dist[i.Key - j.Key] = 0m;
+                    }
+                    tmp.dist[i.Key - j.Key] += i.Value * j.Value;
+                }
+            }
+            return tmp;
         }
 
         public static Operand operator *(Operand a, Operand b)
         {
-            return new Operand(a.val * b.val);
+            Operand tmp = new Operand();
+            foreach (var i in a.dist)
+            {
+                foreach (var j in b.dist)
+                {
+                    if (!tmp.dist.ContainsKey(i.Key * j.Key))
+                    {
+                        tmp.dist[i.Key * j.Key] = 0m;
+                    }
+                    tmp.dist[i.Key * j.Key] += i.Value * j.Value;
+                }
+            }
+            return tmp;
         }
         public static Operand operator <(Operand a, Operand b)
         {
-            if (a.val < b.val)
-                return new Operand(1m);
-            return new Operand(0m);
+            decimal ea = 0m;
+            decimal eb = 0m;
+            foreach (var i in a.dist)
+            {
+                ea += i.Key * i.Value;
+            }
+            foreach (var j in b.dist)
+            {
+                eb += j.Key * j.Value;
+            }
+            return new Operand(ea < eb ? 1m : 0m);
         }
 
         public static Operand operator >(Operand a, Operand b)
         {
-            if (a.val > b.val)
-                return new Operand(1m);
-            return new Operand(0m);
+            decimal ea = 0m;
+            decimal eb = 0m;
+            foreach (var i in a.dist)
+            {
+                ea += i.Key * i.Value;
+            }
+            foreach (var j in b.dist)
+            {
+                eb += j.Key * j.Value;
+            }
+            return new Operand(ea > eb ? 1m : 0m);
         }
-
-
 
     }
 
-    public class Value : Operand
-    {
-
-        public Value(decimal d) : base(d)
-        {
-
-        }
-    }
-
-    public class Variable : Operand
-    {
-        public Variable(string s) : base(s)
-        {
-
-        }
-    }
 
 
     public class Operator : Token
@@ -121,11 +176,11 @@ namespace DICE_PROBABILITY_CALCULATOR
                 {
                     if (m.Value.StartsWith("d"))
                     {
-                        token = new Variable(m.Value);
+                        token = new Operand(m.Value);
                     }
                     else
                     {
-                        token = new Value(Decimal.Parse(m.Value));
+                        token = new Operand(Decimal.Parse(m.Value));
                     }
 
                 }
@@ -165,7 +220,7 @@ namespace DICE_PROBABILITY_CALCULATOR
             }
         }
 
-        public Decimal EvaluateExpression(List<Token> tokens)
+        public Operand EvaluateExpression(List<Token> tokens)
         {
             Stack<Operator> opStack = new Stack<Operator>();
             Stack<Operand> valStack = new Stack<Operand>();
@@ -197,27 +252,23 @@ namespace DICE_PROBABILITY_CALCULATOR
                 Operator t = opStack.Peek();
                 Compute(t, opStack, valStack);
             }
-            return valStack.FirstOrDefault().val;
+            return valStack.FirstOrDefault();
         }
     }
 
-    //public class Solution
-    //{
-    //    public int Calculate(string s)
-    //    {
-    //        MyCalculator myCalculator = new MyCalculator();
-    //        var Tokens = myCalculator.GetTokens(s);
-    //        return int.Parse(myCalculator.EvaluateExpression(Tokens).ToString());
-    //    }
-    //}
-
-
-
-    class Program
+    class Solution
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            // Write an answer using Console.WriteLine()
+            // To debug: Console.Error.WriteLine("Debug messages...");
+            string expr = Console.ReadLine();
+            Console.Error.WriteLine(expr);
+            MyCalculator myCalculator = new MyCalculator();
+            var Tokens = myCalculator.GetTokens(expr);
+            var result = myCalculator.EvaluateExpression(Tokens);
+            Console.WriteLine(result);
         }
     }
+
 }
