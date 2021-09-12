@@ -1,36 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 namespace DICE_PROBABILITY_CALCULATOR
 {
-
-    public enum TokenType
-    {
-        OP,
-        Val
-    }
-
+    public enum TokenType { OP, Val }
     public class Token
     {
         public TokenType tkType;
-        public Token()
-        {
-
-        }
     }
-
     public class Operand : Token
     {
-        public string name;
         public Dictionary<decimal, decimal> dist = new Dictionary<decimal, decimal>();
-
-        public Operand()
-        {
-
-        }
+        public Operand() { }
         public Operand(decimal d)
         {
             dist[d] = 1.00m;
@@ -38,7 +21,6 @@ namespace DICE_PROBABILITY_CALCULATOR
         }
         public Operand(string s)
         {
-            name = s;
             decimal bound = decimal.Parse(s.Replace("d", ""));
             for (var i = 1; i <= bound; i++)
             {
@@ -46,96 +28,38 @@ namespace DICE_PROBABILITY_CALCULATOR
             }
             tkType = TokenType.Val;
         }
-
         public override string ToString()
-        {          
+        {
             StringBuilder sb = new StringBuilder();
-
-            foreach (var i in dist.OrderBy(a=>a.Key))
+            foreach (var i in dist.OrderBy(a => a.Key))
             {
-                sb.Append($"{i.Key} {(i.Value*100).ToString("##.00")}\n");
+                sb.Append($"{i.Key} {(i.Value * 100).ToString("##.00")}\n");
             }
             return sb.ToString().TrimEnd('\r', '\n');
         }
-
-
         public static Operand operator +(Operand a, Operand b)
         {
-            Operand tmp = new Operand();
-            foreach (var i in a.dist)
-            {
-                foreach (var j in b.dist)
-                {
-                    if (!tmp.dist.ContainsKey(i.Key + j.Key))
-                    {
-                        tmp.dist[i.Key + j.Key] = 0m;
-                    }
-                    tmp.dist[i.Key + j.Key] += i.Value * j.Value;
-                }
-            }
-            return tmp;
+            return Operator.Add(a, b);
         }
 
         public static Operand operator -(Operand a, Operand b)
         {
-            Operand tmp = new Operand();
-            foreach (var i in a.dist)
-            {
-                foreach (var j in b.dist)
-                {
-                    if (!tmp.dist.ContainsKey(i.Key - j.Key))
-                    {
-                        tmp.dist[i.Key - j.Key] = 0m;
-                    }
-                    tmp.dist[i.Key - j.Key] += i.Value * j.Value;
-                }
-            }
-            return tmp;
+            return Operator.Subtract(a, b);
         }
 
         public static Operand operator *(Operand a, Operand b)
         {
-            Operand tmp = new Operand();
-            foreach (var i in a.dist)
-            {
-                foreach (var j in b.dist)
-                {
-                    if (!tmp.dist.ContainsKey(i.Key * j.Key))
-                    {
-                        tmp.dist[i.Key * j.Key] = 0m;
-                    }
-                    tmp.dist[i.Key * j.Key] += i.Value * j.Value;
-                }
-            }
-            return tmp;
+            return Operator.Multiply(a, b);
         }
         public static Operand operator <(Operand a, Operand b)
         {
             throw new Exception();
         }
-
         public static Operand operator >(Operand a, Operand b)
         {
-            Operand tmp = new Operand();
-            foreach (var i in a.dist)
-            {
-                foreach (var j in b.dist)
-                {
-                    var cmp = i.Key > j.Key ? 1m : 0m;
-                    if (!tmp.dist.ContainsKey(cmp))
-                    {
-                        tmp.dist[cmp] = 0m;
-                    }
-                    tmp.dist[cmp] += i.Value * j.Value;
-                }
-            }
-            return tmp;
+            return Operator.Greater(a, b);
         }
-
     }
-
-
-
     public class Operator : Token
     {
         public string op;
@@ -144,15 +68,46 @@ namespace DICE_PROBABILITY_CALCULATOR
             op = s;
             tkType = TokenType.OP;
         }
+        public static Operand CheckEveryPairs(Operand a , Operand b, Func<decimal, decimal, decimal> func)
+        {
+            Operand tmp = new Operand();
+            foreach (var i in a.dist)
+            {
+                foreach (var j in b.dist)
+                {
+                    decimal k = func(i.Key, j.Key);
+                    if (!tmp.dist.ContainsKey(k))
+                    {
+                        tmp.dist[k] = 0m;
+                    }
+                    tmp.dist[k] += i.Value * j.Value;
+                }
+            }
+            return tmp;
+        }
+        public static Operand Add(Operand a, Operand b)
+        {
+            return CheckEveryPairs(a, b, (x, y) => x + y);
+        }
+        public static Operand Subtract(Operand a, Operand b)
+        {
+            return CheckEveryPairs(a, b, (x, y) => x - y);
+        }
+        public static Operand Multiply(Operand a, Operand b)
+        {
+            return CheckEveryPairs(a, b, (x, y) => x * y);
+        }
+        public static Operand Greater(Operand a, Operand b)
+        {
+            return CheckEveryPairs(a, b, (x, y) => x > y ? 1m : 0m);
+        }
     }
-
     public class MyCalculator
     {
         public Dictionary<string, int> precedenceTable = new Dictionary<string, int>
         {
             {">",0 },{"+",1},{"-",1},{"*",2},{"/",2},{"(",1000},{")",-1000}
         };
-
         public List<Token> GetTokens(string input)
         {
             Regex regex = new Regex(@"(?<val>\d+|d\d+)|(?<op>\>|\+|\-|\*|\\|\(|\))");
@@ -184,11 +139,7 @@ namespace DICE_PROBABILITY_CALCULATOR
 
         private void Compute(Operator t, Stack<Operator> opStack, Stack<Operand> valStack)
         {
-            if (opStack.Count == 0)
-                return;
-            if (valStack.Count == 0)
-                return;
-            while ((opStack.Peek().op != "(") && precedenceTable[t.op] <= precedenceTable[opStack.Peek().op])
+            while (valStack.Count > 0 && opStack.Count > 0 && (opStack.Peek().op != "(") && precedenceTable[t.op] <= precedenceTable[opStack.Peek().op])
             {
                 Operator opToken = opStack.Pop();
                 Operand b = valStack.Pop();
@@ -208,8 +159,6 @@ namespace DICE_PROBABILITY_CALCULATOR
                         valStack.Push(a > b);
                         break;
                 }
-                if (opStack.Count == 0)
-                    return;
             }
         }
 
@@ -217,7 +166,6 @@ namespace DICE_PROBABILITY_CALCULATOR
         {
             Stack<Operator> opStack = new Stack<Operator>();
             Stack<Operand> valStack = new Stack<Operand>();
-
             foreach (Token t in tokens)
             {
                 if (t is Operator)
@@ -248,13 +196,10 @@ namespace DICE_PROBABILITY_CALCULATOR
             return valStack.FirstOrDefault();
         }
     }
-
     class Solution
     {
         static void Main(string[] args)
         {
-            // Write an answer using Console.WriteLine()
-            // To debug: Console.Error.WriteLine("Debug messages...");
             string expr = Console.ReadLine();
             Console.Error.WriteLine(expr);
             MyCalculator myCalculator = new MyCalculator();
@@ -263,5 +208,4 @@ namespace DICE_PROBABILITY_CALCULATOR
             Console.WriteLine(result);
         }
     }
-
 }
